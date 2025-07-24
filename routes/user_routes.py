@@ -5,14 +5,16 @@ from flask_jwt_extended import get_jwt_identity
 from bson import ObjectId
 
 from auth import auth_required
+from utils.rate_limits import RATE_LIMITS
 
-user_bp = Blueprint('user', __name__)
+user_bp = Blueprint('user', __name__, url_prefix='/api')
 
 
-def init_user_routes(db_manager):
+def init_user_routes(db_manager, limiter):
     """Initialize user routes with database manager."""
     
     @user_bp.route('/profile', methods=['GET'])
+    @limiter.limit(RATE_LIMITS['protected_moderate'])
     @auth_required
     def get_profile():
         """Get user profile (protected route example)."""
@@ -38,6 +40,7 @@ def init_user_routes(db_manager):
             return jsonify({"success": False, "message": "Internal server error"}), 500
 
     @user_bp.route('/health', methods=['GET'])
+    @limiter.limit(RATE_LIMITS['public'])
     def health_check():
         """Health check endpoint."""
         return jsonify({"status": "healthy", "message": "API is running"}), 200

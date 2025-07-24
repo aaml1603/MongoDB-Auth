@@ -10,6 +10,7 @@ A secure Flask-based REST API with JWT authentication, refresh tokens, and Mongo
 - 📊 **MongoDB Integration**: User data stored in MongoDB
 - 🏗️ **Modular Architecture**: Clean, organized codebase with separation of concerns
 - 🛡️ **Security Best Practices**: Password validation, secure token handling
+- 🚦 **Rate Limiting**: Comprehensive rate limiting to prevent abuse
 
 ## Installation
 
@@ -244,12 +245,50 @@ The application runs with `debug=True` in development mode.
 | `MONGODB_DATABASE` | MongoDB database name | No | `mascarga` |
 | `JWT_SECRET_KEY` | Secret key for JWT signing | Yes | `your-secret-key-change-this` |
 
+## Rate Limiting
+
+The API implements comprehensive rate limiting to prevent abuse and ensure fair usage:
+
+### Rate Limit Tiers
+
+| Endpoint Type | Limit | Reason |
+|---------------|-------|---------|
+| **Authentication** (`/login`, `/register`) | 5 per minute | Prevent brute force attacks |
+| **Token Refresh** (`/refresh`) | 10 per minute | Moderate token refresh abuse |
+| **Password Reset Request** (`/request-password-reset`) | 3 per minute | Prevent email spam abuse |
+| **Password Reset Confirm** (`/reset-password`) | 5 per minute | Prevent token brute force |
+| **Protected Endpoints** (`/profile`) | 100 per minute | Normal API usage |
+| **Public Endpoints** (`/health`) | 200 per minute | High availability |
+| **Global Limit** | 1000 per hour | Safety net |
+
+### Rate Limit Headers
+
+When rate limited, responses include:
+- `Retry-After`: Seconds until limit resets
+- `X-RateLimit-*`: Current limit status (if configured)
+
+### Rate Limit Response
+
+```json
+{
+  "success": false,
+  "error": "rate_limit_exceeded",
+  "message": "Too many requests. Please slow down and try again later.",
+  "details": {
+    "limit": "5 per 1 minute",
+    "retry_after_seconds": 45,
+    "endpoint": "auth.login"
+  }
+}
+```
+
 ## Error Responses
 
 All error responses follow this format:
 ```json
 {
   "success": false,
+  "error": "error_code",
   "message": "Error description"
 }
 ```
@@ -258,6 +297,7 @@ Common HTTP status codes:
 - `400`: Bad Request (validation errors)
 - `401`: Unauthorized (authentication failed)
 - `404`: Not Found (resource not found)
+- `429`: Too Many Requests (rate limited)
 - `500`: Internal Server Error
 
 ## Contributing

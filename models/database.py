@@ -21,11 +21,12 @@ class DatabaseManager:
             db_name: Name of the MongoDB database (defaults to env var MONGODB_DATABASE)
             collection_name: Name of the collection to use
         """
-        self.db_name = db_name or getenv("MONGODB_DATABASE")
+        self.db_name = db_name or getenv("MONGODB_DATABASE", "mascarga")
         self.collection_name = collection_name
         self.client: Optional[MongoClient] = None
         self.database: Optional[Database] = None
         self.usuarios: Optional[Collection] = None
+        self.reset_tokens: Optional[Collection] = None
         
         # Setup logging
         logging.basicConfig(
@@ -54,9 +55,10 @@ class DatabaseManager:
             self.client.admin.command('ping')
             self.logger.info("Successfully connected to MongoDB")
             
-            # Setup database and collection
+            # Setup database and collections
             self.database = self.client[self.db_name]
             self.usuarios = self.database[self.collection_name]
+            self.reset_tokens = self.database["PasswordResetTokens"]
             
             return True
             
